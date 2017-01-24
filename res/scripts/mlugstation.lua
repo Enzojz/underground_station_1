@@ -50,21 +50,20 @@ local function buildCoors(nSeg)
     
     local function buildUIndex(uOffset, ...) return {func.seq(uOffset * nSeg, (uOffset + 1) * nSeg - 1), {...}} end
     
-    local function buildGroup(group, baseX, xOffsets, uOffsets, xuIndex, xParity)
-        local nbTracks, level = table.unpack(group)
+    local function buildGroup(nbTracks, level, baseX, xOffsets, uOffsets, xuIndex, xParity)
         local project = function(x) return func.map(x, function(offset) return {mpt = coor.mul(coor.transX(offset), level.mdr, level.mz), mvec = level.mr} end) end
         if (nbTracks == 0) then
             return
                 xOffsets, uOffsets, xuIndex, xParity
         elseif (nbTracks == 1) then
-            return buildGroup({nbTracks - 1, level}, baseX + groupWidth - 0.5 * trackWidth,
+            return buildGroup(nbTracks - 1, level, baseX + groupWidth - 0.5 * trackWidth,
                 func.concat(xOffsets, project({baseX + platformWidth})),
                 func.concat(uOffsets, project({baseX + platformWidth - trackWidth})),
                 func.concat(xuIndex, {buildUIndex(#uOffsets, {1, #xOffsets + 1})}),
                 func.concat(xParity, {coor.flipY()})
         )
         else
-            return buildGroup({nbTracks - 2, level}, baseX + groupWidth + trackWidth,
+            return buildGroup(nbTracks - 2, level, baseX + groupWidth + trackWidth,
                 func.concat(xOffsets, project({baseX, baseX + groupWidth})),
                 func.concat(uOffsets, project({baseX + 0.5 * groupWidth})),
                 func.concat(xuIndex, {buildUIndex(#uOffsets, {0, #xOffsets + 1}, {1, #xOffsets + 2})}),
@@ -76,7 +75,8 @@ local function buildCoors(nSeg)
     local function build(trackGroups, baseX, ...)
         
         if (#trackGroups == 1) then
-            return buildGroup(trackGroups[1], baseX, ...)
+            local nbTracks, level = table.unpack(trackGroups[1])
+            return buildGroup(nbTracks, level, baseX, ...)
         else
             return build(func.range(trackGroups, 2, #trackGroups), baseX, build({trackGroups[1]}, baseX, ...))
         end

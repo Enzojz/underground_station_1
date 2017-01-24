@@ -17,12 +17,12 @@ local stationlib = {
 }
 
 
-stationlib.generateTrackGroups = function(xOffsets, xParity, length)
+stationlib.generateTrackGroups = function(xOffsets, length)
     local halfLength = length * 0.5
     return func.flatten(
-        func.map2(xOffsets, xParity,
-            function(xOffset, m)
-                return coor.applyEdges(coor.mul(m, xOffset.mpt), coor.mul(m, xOffset.mvec))(
+        func.map(xOffsets,
+            function(xOffset)
+                return coor.applyEdges(coor.mul(xOffset.parity, xOffset.mpt), coor.mul(xOffset.parity, xOffset.mvec))(
                     {
                         {{0, -halfLength, 0}, {0, halfLength, 0}},
                         {{0, 0, 0}, {0, halfLength, 0}},
@@ -38,23 +38,28 @@ stationlib.buildCoors = function(nSeg)
     
     local function buildUIndex(uOffset, ...) return {func.seq(uOffset * nSeg, (uOffset + 1) * nSeg - 1), {...}} end
     
-    local function buildGroup(nbTracks, level, baseX, xOffsets, uOffsets, xuIndex, xParity)
-        local project = function(x) return func.map(x, function(offset) return {mpt = coor.mul(coor.transX(offset), level.mdr, level.mz), mvec = level.mr} end) end
+    local function buildGroup(nbTracks, level, baseX, xOffsets, uOffsets, xuIndex)
+        local project = function(x, p) return func.map2(x, p, function(offset, parity) return
+            {
+                mpt = coor.mul(coor.transX(offset), level.mdr, level.mz),
+                mvec = level.mr,
+                parity = parity,
+                id = level.id
+            }
+        end) end
         if (nbTracks == 0) then
-            return xOffsets, uOffsets, xuIndex, xParity
+            return xOffsets, uOffsets, xuIndex
         elseif (nbTracks == 1) then
-            return buildGroup(nbTracks - 1, level, baseX + groupWidth - 0.5 * trackWidth,
-                func.concat(xOffsets, project({baseX + stationlib.platformWidth})),
-                func.concat(uOffsets, project({baseX + stationlib.platformWidth - stationlib.trackWidth})),
-                func.concat(xuIndex, {buildUIndex(#uOffsets, {1, #xOffsets + 1})}),
-                func.concat(xParity, {coor.flipY()})
+            return buildGroup(nbTracks - 1, level, baseX + groupWidth - 0.5 * stationlib.trackWidth,
+                func.concat(xOffsets, project({baseX + stationlib.platformWidth}, {coor.flipY()})),
+                func.concat(uOffsets, project({baseX + stationlib.platformWidth - stationlib.trackWidth}, {coor.I()})),
+                func.concat(xuIndex, {buildUIndex(#uOffsets, {1, #xOffsets + 1})})
         )
         else
             return buildGroup(nbTracks - 2, level, baseX + groupWidth + stationlib.trackWidth,
-                func.concat(xOffsets, project({baseX, baseX + groupWidth})),
-                func.concat(uOffsets, project({baseX + 0.5 * groupWidth})),
-                func.concat(xuIndex, {buildUIndex(#uOffsets, {0, #xOffsets + 1}, {1, #xOffsets + 2})}),
-                func.concat(xParity, {coor.I(), coor.flipY()})
+                func.concat(xOffsets, project({baseX, baseX + groupWidth}, {coor.I(), coor.flipY()})),
+                func.concat(uOffsets, project({baseX + 0.5 * groupWidth}, {coor.I()})),
+                func.concat(xuIndex, {buildUIndex(#uOffsets, {0, #xOffsets + 1}, {1, #xOffsets + 2})})
         )
         end
     end

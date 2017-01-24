@@ -7,7 +7,6 @@ local station = require "stationlib"
 
 local platformSegments = {2, 4, 8, 12, 16, 20, 24}
 local heightList = {-10, -15, -20}
-local segmentLength = 20
 local angleList = {0, 15, 30, 45, 60, 75, 90}
 local nbTracksLevelList = {{2, 1}, {4, 1}, {2, 2}, {4, 2}, {2, 3}, {4, 3}}
 
@@ -30,7 +29,7 @@ local function params()
         {
             key = "length",
             name = _("Platform length") .. "(m)",
-            values = func.map(platformSegments, function(l) return _(tostring(l * segmentLength)) end),
+            values = func.map(platformSegments, function(l) return _(tostring(l * station.segmentLength)) end),
             defaultIndex = 2
         },
         {
@@ -115,18 +114,18 @@ local function centers(nSeg)
     return {
         {
             {x = 0, y = 0, z = 0},
-            {x = 0, y = segmentLength * (nSeg * 0.5 - 2), z = 0},
-            {x = 0, y = -segmentLength * (nSeg * 0.5 - 2), z = 0}
+            {x = 0, y = station.segmentLength * (nSeg * 0.5 - 2), z = 0},
+            {x = 0, y = -station.segmentLength * (nSeg * 0.5 - 2), z = 0}
         },
         {
             {x = 0, y = 0, z = 0},
-            {x = 0, y = segmentLength * (nSeg * 0.5 - 2), z = 0},
-            {x = 0, y = -segmentLength * (nSeg * 0.5 - 2), z = 0}
+            {x = 0, y = station.segmentLength * (nSeg * 0.5 - 2), z = 0},
+            {x = 0, y = -station.segmentLength * (nSeg * 0.5 - 2), z = 0}
         },
         {
             {x = 0, y = 0, z = 0},
-            {x = 0, y = segmentLength * (nSeg * 0.5 - 2), z = 0},
-            {x = 0, y = segmentLength * (nSeg * 0.5 - 2), z = 0}
+            {x = 0, y = station.segmentLength * (nSeg * 0.5 - 2), z = 0},
+            {x = 0, y = station.segmentLength * (nSeg * 0.5 - 2), z = 0}
         }
     }
 end
@@ -194,7 +193,7 @@ local function makeUpdateFn(config)
             local catenary = (params.trackTypeCatenary == 1) or (params.trackTypeCatenary == 2)
             local tramTrack = ({"NO", "YES", "ELECTRIC"})[(params.tramTrackType == nil and 0 or params.tramTrackType) + 1]
             local nSeg = platformSegments[params.length + 1]
-            local length = nSeg * segmentLength
+            local length = nSeg * station.segmentLength
             local nbTracks, nbLevels = table.unpack(nbTracksLevelList[params.nbTracks + 1])
             local height = heightList[params.platformHeight + 1]
             local levels = {}
@@ -211,17 +210,20 @@ local function makeUpdateFn(config)
                     {
                         mz = coor.I(),
                         mr = coor.I(),
-                        mdr = coor.I()
+                        mdr = coor.I(),
+                        id = 1
                     },
                     {
                         mz = coor.transZ(-10),
                         mr = coor.rotZ(rad[2]),
-                        mdr = coor.rotZCentered(rad[2], center[2])
+                        mdr = coor.rotZCentered(rad[2], center[2]),
+                        id = 2
                     },
                     {
                         mz = coor.transZ(-20),
                         mr = coor.rotZ(rad[3] + rad[2]),
-                        mdr = coor.mul(coor.trans(coor.sub(center3a, center[3])), coor.rotZCentered(rad[3] + rad[2], center3a))
+                        mdr = coor.mul(coor.trans(coor.sub(center3a, center[3])), coor.rotZCentered(rad[3] + rad[2], center3a)),
+                        id = 3
                     }
                 }
             elseif (params.topoMode == 2) then
@@ -233,17 +235,20 @@ local function makeUpdateFn(config)
                     {
                         mz = coor.I(),
                         mr = coor.I(),
-                        mdr = coor.I()
+                        mdr = coor.I(),
+                        id = 1
                     },
                     {
                         mz = coor.transZ(-10),
                         mr = coor.rotZ(rad[2]),
-                        mdr = coor.mul(coor.transX(dx), coor.rotZCentered(rad[2], coor.apply(center[2], coor.transX(0.5 * dx))))
+                        mdr = coor.mul(coor.transX(dx), coor.rotZCentered(rad[2], coor.apply(center[2], coor.transX(0.5 * dx)))),
+                        id = 2
                     },
                     {
                         mz = coor.transZ(-20),
                         mr = coor.rotZ(rad[3]),
-                        mdr = coor.mul(coor.trans(coor.sub(center3a, center[3])), coor.rotZCentered(rad[3], coor.apply(center3a, coor.transX(-0.5 * dx))))
+                        mdr = coor.mul(coor.trans(coor.sub(center3a, center[3])), coor.rotZCentered(rad[3], coor.apply(center3a, coor.transX(-0.5 * dx)))),
+                        id = 3
                     }
                 }
             else
@@ -251,7 +256,8 @@ local function makeUpdateFn(config)
                     return {
                         mz = coor.transZ(0 - l * 10),
                         mr = coor.rotZ(rad[l + 1]),
-                        mdr = coor.rotZ(rad[l + 1])
+                        mdr = coor.rotZ(rad[l + 1]),
+                        id = l + 1
                     } end)
             end
             
@@ -272,10 +278,10 @@ local function makeUpdateFn(config)
             func.forEach(levels, function(l) l.nbTracks = nbTracks l.baseX = 0.5 * (-totalWidth + station.trackWidth) end)
 
             local platforms = platformPatterns(nSeg)
-            local xOffsets, uOffsets, xuIndex, xParity = station.buildCoors(nSeg)(levels, {}, {}, {}, {})
+            local xOffsets, uOffsets, xuIndex = station.buildCoors(nSeg)(levels, {}, {}, {}, {})
             
-            local trueTracks = station.generateTrackGroups(xOffsets, xParity, length)
-            local mockTracks = station.generateTrackGroups(uOffsets, func.seqValue(#uOffsets, coor.I()), length)
+            local trueTracks = station.generateTrackGroups(xOffsets, length)
+            local mockTracks = station.generateTrackGroups(uOffsets, length)
             
             result.edgeLists = {
                 trackEdge.tunnel(catenary, trackType, snapRule)(trueTracks),

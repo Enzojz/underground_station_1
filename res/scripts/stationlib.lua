@@ -57,12 +57,12 @@ stationlib.buildCoors = function(nSeg)
         end
     end
     
-    local function build(trackGroups, baseX, ...)
+    local function build(trackGroups, ...)
         if (#trackGroups == 1) then
-            local nbTracks, level = table.unpack(trackGroups[1])
-            return buildGroup(nbTracks, level, baseX, ...)
+            local group = table.unpack(trackGroups)
+            return buildGroup(group.nbTracks, group, group.baseX, ...)
         else
-            return build(func.range(trackGroups, 2, #trackGroups), baseX, build({trackGroups[1]}, baseX, ...))
+            return build(func.range(trackGroups, 2, #trackGroups), build({trackGroups[1]}, ...))
         end
     end
     return build

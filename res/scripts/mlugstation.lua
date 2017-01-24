@@ -10,7 +10,6 @@ local heightList = {-10, -15, -20}
 local segmentLength = 20
 local angleList = {0, 15, 30, 45, 60, 75, 90}
 local nbTracksLevelList = {{2, 1}, {4, 1}, {2, 2}, {4, 2}, {2, 3}, {4, 3}}
-local nbTracksPlatform = {2, 4, 6, 8}
 
 local newModel = function(m, ...)
     return {
@@ -269,9 +268,12 @@ local function makeUpdateFn(config)
             if (params.topoMode == 2 and rad[2] == rad[3] and #entryLocations == 3) then table.remove(entryLocations, 2) end
             
             local totalWidth = nbTracks * (station.trackWidth + 0.5 * station.platformWidth)
+
+            func.forEach(levels, function(l) l.nbTracks = nbTracks l.baseX = 0.5 * (-totalWidth + station.trackWidth) end)
+
             local platforms = platformPatterns(nSeg)
             local xOffsets, uOffsets, xuIndex, xParity =
-                station.buildCoors(nSeg)(func.map(levels, function(l) return {nbTracks, l} end), 0.5 * (-totalWidth + station.trackWidth), {}, {}, {}, {})
+                station.buildCoors(nSeg)(levels, {}, {}, {}, {})
             
             local trueTracks = station.generateTrackGroups(xOffsets, xParity, length)
             local mockTracks = station.generateTrackGroups(uOffsets, func.seqValue(#uOffsets, coor.I()), length)

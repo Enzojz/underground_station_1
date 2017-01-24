@@ -2,18 +2,20 @@ local func = require "func"
 local coor = require "coor"
 local trackEdge = require "trackedge"
 
+local newModel = function(m, ...)
+    return {
+        id = m,
+        transf = coor.mul(...)
+    }
+end
+
 
 local stationlib = {
     platformWidth = 5,
-    trackWidth = 5
+    trackWidth = 5,
+    segmentLength = 20
 }
 
-stationlib.makeTerminals = function(terminals, side, track)
-    return {
-        terminals = func.map(terminals, function(t) return {t, side} end),
-        vehicleNodeOverride = track * 4 - 2
-    }
-end
 
 stationlib.generateTrackGroups = function(xOffsets, xParity, length)
     local halfLength = length * 0.5
@@ -70,6 +72,29 @@ end
 
 stationlib.noSnap = function(e) return {} end
 
+stationlib.makePlatforms = function(uOffsets, platforms)
+    local length = #platforms * stationlib.segmentLength
+    return func.mapFlatten(uOffsets,
+        function(uOffset)
+            return func.map2(func.seq(1, #platforms), platforms, function(i, p)
+                return newModel(p, coor.transY(i * stationlib.segmentLength - 0.5 * (stationlib.segmentLength + length)), uOffset.mpt) end
+        )
+        end)
+end
+
+stationlib.makeTerminals = function(xuIndex)
+    return func.mapFlatten(xuIndex, function(xu)
+        local terminals, xIndices = table.unpack(xu)
+        return func.map(xIndices, function(x)
+            local side, track = table.unpack(x)
+            return {
+                terminals = func.map(terminals, function(t) return {t, side} end),
+                vehicleNodeOverride = track * 4 - 2
+            }
+        end
+    )
+    end)
+end
 
 stationlib.setHeight = function(result, height)
     local mpt = coor.transZ(height)

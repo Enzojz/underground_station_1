@@ -272,8 +272,7 @@ local function makeUpdateFn(config)
             func.forEach(levels, function(l) l.nbTracks = nbTracks l.baseX = 0.5 * (-totalWidth + station.trackWidth) end)
 
             local platforms = platformPatterns(nSeg)
-            local xOffsets, uOffsets, xuIndex, xParity =
-                station.buildCoors(nSeg)(levels, {}, {}, {}, {})
+            local xOffsets, uOffsets, xuIndex, xParity = station.buildCoors(nSeg)(levels, {}, {}, {}, {})
             
             local trueTracks = station.generateTrackGroups(xOffsets, xParity, length)
             local mockTracks = station.generateTrackGroups(uOffsets, func.seqValue(#uOffsets, coor.I()), length)
@@ -283,18 +282,8 @@ local function makeUpdateFn(config)
                 trackEdge.tunnel(false, "zzz_mock.lua", station.noSnap)(mockTracks)
             }
             
-            result.models =
-                func.mapFlatten(uOffsets,
-                    function(uOffset)
-                        return func.seqMap({1, #platforms}, function(i) return newModel(platforms[i], coor.transY(i * 20 - 0.5 * (segmentLength + length)), uOffset.mpt) end
-                    )
-                    end)
-            
-            result.terminalGroups = func.mapFlatten(xuIndex, function(v)
-                local u, xIndices = table.unpack(v)
-                return func.map(xIndices, function(x) return station.makeTerminals(u, table.unpack(x)) end
-            )
-            end)
+            result.models = station.makePlatforms(uOffsets, platforms)
+            result.terminalGroups = station.makeTerminals(xuIndex)
             
             station.setHeight(result, height)
             

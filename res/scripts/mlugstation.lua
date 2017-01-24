@@ -3,12 +3,11 @@ local paramsutil = require "paramsutil"
 local func = require "func"
 local coor = require "coor"
 local trackEdge = require "trackedge"
+local station = require "stationlib"
 
 local platformSegments = {2, 4, 8, 12, 16, 20, 24}
 local heightList = {-10, -15, -20}
 local segmentLength = 20
-local platformWidth = 5
-local trackWidth = 5
 local angleList = {0, 15, 30, 45, 60, 75, 90}
 local nbTracksLevelList = {{2, 1}, {4, 1}, {2, 2}, {4, 2}, {2, 3}, {4, 3}}
 local nbTracksPlatform = {2, 4, 6, 8}
@@ -20,87 +19,7 @@ local newModel = function(m, ...)
     }
 end
 
-local makeTerminals = function(terminals, side, track)
-    return {
-        terminals = func.map(terminals, function(t) return {t, side} end),
-        vehicleNodeOverride = track * 4 - 2
-    }
-end
-
-local function generateTrackGroups(xOffsets, xParity, length)
-    local halfLength = length * 0.5
-    return func.flatten(
-        func.map2(xOffsets, xParity,
-            function(xOffset, m)
-                return coor.applyEdges(coor.mul(m, xOffset.mpt), coor.mul(m, xOffset.mvec))(
-                    {
-                        {{0, -halfLength, 0}, {0, halfLength, 0}},
-                        {{0, 0, 0}, {0, halfLength, 0}},
-                        {{0, 0, 0}, {0, halfLength, 0}},
-                        {{0, halfLength, 0}, {0, halfLength, 0}},
-                    })
-            end
-))
-end
-
-local function buildCoors(nSeg)
-    local groupWidth = trackWidth + platformWidth
-    
-    local function buildUIndex(uOffset, ...) return {func.seq(uOffset * nSeg, (uOffset + 1) * nSeg - 1), {...}} end
-    
-    local function buildGroup(nbTracks, level, baseX, xOffsets, uOffsets, xuIndex, xParity)
-        local project = function(x) return func.map(x, function(offset) return {mpt = coor.mul(coor.transX(offset), level.mdr, level.mz), mvec = level.mr} end) end
-        if (nbTracks == 0) then
-            return xOffsets, uOffsets, xuIndex, xParity
-        elseif (nbTracks == 1) then
-            return buildGroup(nbTracks - 1, level, baseX + groupWidth - 0.5 * trackWidth,
-                func.concat(xOffsets, project({baseX + platformWidth})),
-                func.concat(uOffsets, project({baseX + platformWidth - trackWidth})),
-                func.concat(xuIndex, {buildUIndex(#uOffsets, {1, #xOffsets + 1})}),
-                func.concat(xParity, {coor.flipY()})
-        )
-        else
-            return buildGroup(nbTracks - 2, level, baseX + groupWidth + trackWidth,
-                func.concat(xOffsets, project({baseX, baseX + groupWidth})),
-                func.concat(uOffsets, project({baseX + 0.5 * groupWidth})),
-                func.concat(xuIndex, {buildUIndex(#uOffsets, {0, #xOffsets + 1}, {1, #xOffsets + 2})}),
-                func.concat(xParity, {coor.I(), coor.flipY()})
-        )
-        end
-    end
-    
-    local function build(trackGroups, baseX, ...)
-        if (#trackGroups == 1) then
-            local nbTracks, level = table.unpack(trackGroups[1])
-            return buildGroup(nbTracks, level, baseX, ...)
-        else
-            return build(func.range(trackGroups, 2, #trackGroups), baseX, build({trackGroups[1]}, baseX, ...))
-        end
-    end
-    return build
-end
-
 local snapRule = function(e) return func.filter(func.seq(0, #e - 1), function(e) return e % 4 == 0 or (e - 3) % 4 == 0 end) end
-local noSnap = function(e) return {} end
-
-local function setHeight(result, height)
-    local mpt = coor.transZ(height)
-    local mvec = coor.I()
-    
-    local mapEdgeList = function(edgeList)
-        edgeList.edges = func.map(edgeList.edges, coor.applyEdge(mpt, mvec))
-        return edgeList
-    end
-    
-    result.edgeLists = func.map(result.edgeLists, mapEdgeList)
-    
-    local mapModel = function(model)
-        model.transf = coor.mul(model.transf, mpt)
-        return model
-    end
-    
-    result.models = func.map(result.models, mapModel)
-end
 
 local function params()
     return {
@@ -164,8 +83,6 @@ local function params()
     }
 end
 
-
-
 local function addEntry(result, tram, config)
     table.insert(result.models, config.model)
     local street =
@@ -195,12 +112,6 @@ local function addEntry(result, tram, config)
 )
 end
 
-local faceMapper = function(m)
-    return function(face)
-        return func.map(face, function(pt) return func.pipe(pt, coor.tuple2Vec, func.bind(coor.apply, nil, m), coor.vec2Tuple) end)
-    end
-end
-
 local function centers(nSeg)
     return {
         {
@@ -221,7 +132,7 @@ local function centers(nSeg)
     }
 end
 
-local function updateFn(config)
+local function makeUpdateFn(config)
     
     local basicPattern = {config.platformRepeat, config.platformDwlink}
     local basicPatternR = {config.platformDwlink, config.platformRepeat}
@@ -229,7 +140,6 @@ local function updateFn(config)
         return (n > 2) and (func.mapFlatten(func.seq(1, n * 0.5), function(i) return basicPatternR end)) or basicPattern end
     local stationHouse = config.stationHouse
     local staires = config.staires
-    
     
     local function houseEntryConfig(mpt, mvec)
         return {
@@ -246,7 +156,7 @@ local function updateFn(config)
             faces = func.map(
                 {
                     {{10, 6, 0}, {-10, 6, 0}, {-10, -6, 0}, {10, -6, 0}}
-                }, faceMapper(mpt))
+                }, station.faceMapper(mpt))
         }
     end
     
@@ -265,7 +175,7 @@ local function updateFn(config)
                 {
                     {{-8, 0.7, -0.8}, {-8, -0.7, -0.8}, {-13, -0.7, -0.8}, {-13, 0.7, -0.8}},
                     {{13, 0.7, -0.8}, {13, -0.7, -0.8}, {8, -0.7, -0.8}, {8, 0.7, -0.8}},
-                }, faceMapper(mpt))
+                }, station.faceMapper(mpt))
         }
     end
     
@@ -277,8 +187,7 @@ local function updateFn(config)
         {houseEntryConfig, stairsEntryConfig, stairsEntryConfig}
     }
     
-    return
-        function(params)
+    return function(params)
             
             local result = {}
             
@@ -359,17 +268,17 @@ local function updateFn(config)
             
             if (params.topoMode == 2 and rad[2] == rad[3] and #entryLocations == 3) then table.remove(entryLocations, 2) end
             
-            local totalWidth = nbTracks * (trackWidth + 0.5 * platformWidth)
+            local totalWidth = nbTracks * (station.trackWidth + 0.5 * station.platformWidth)
             local platforms = platformPatterns(nSeg)
             local xOffsets, uOffsets, xuIndex, xParity =
-                buildCoors(nSeg)(func.map(levels, function(l) return {nbTracks, l} end), 0.5 * (-totalWidth + trackWidth), {}, {}, {}, {})
+                station.buildCoors(nSeg)(func.map(levels, function(l) return {nbTracks, l} end), 0.5 * (-totalWidth + station.trackWidth), {}, {}, {}, {})
             
-            local trueTracks = generateTrackGroups(xOffsets, xParity, length)
-            local mockTracks = generateTrackGroups(uOffsets, func.seqValue(#uOffsets, coor.I()), length)
+            local trueTracks = station.generateTrackGroups(xOffsets, xParity, length)
+            local mockTracks = station.generateTrackGroups(uOffsets, func.seqValue(#uOffsets, coor.I()), length)
             
             result.edgeLists = {
                 trackEdge.tunnel(catenary, trackType, snapRule)(trueTracks),
-                trackEdge.tunnel(false, "zzz_mock.lua", noSnap)(mockTracks)
+                trackEdge.tunnel(false, "zzz_mock.lua", station.noSnap)(mockTracks)
             }
             
             result.models =
@@ -381,11 +290,11 @@ local function updateFn(config)
             
             result.terminalGroups = func.mapFlatten(xuIndex, function(v)
                 local u, xIndices = table.unpack(v)
-                return func.map(xIndices, function(x) return makeTerminals(u, table.unpack(x)) end
+                return func.map(xIndices, function(x) return station.makeTerminals(u, table.unpack(x)) end
             )
             end)
             
-            setHeight(result, height)
+            station.setHeight(result, height)
             
             result.groundFaces = {}
             result.terrainAlignmentLists = {}
@@ -396,12 +305,12 @@ local function updateFn(config)
             result.maintenanceCost = result.cost / 6
             
             return result
-        end
+    end
 end
 
 
 local mlugstation = {
-    dataCallback = function(config)
+    makeUpdateFn = function(config)
         return function()
             return {
                 type = "RAIL_STATION",
@@ -413,7 +322,7 @@ local mlugstation = {
                 order = config.order,
                 soundConfig = config.soundConfig,
                 params = params(),
-                updateFn = updateFn(config)
+                updateFn = makeUpdateFn(config)
             }
         end
     end

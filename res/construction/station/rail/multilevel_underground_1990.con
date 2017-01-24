@@ -62,4 +62,4 @@ local config = {
     staires = "station/train/passenger/multi_level_underground/1990/underground_stairs.mdl"
 }
 
-data = station.dataCallback(config)
+data = station.makeUpdateFn(config)

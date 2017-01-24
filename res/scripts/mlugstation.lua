@@ -3,7 +3,6 @@ local paramsutil = require "paramsutil"
 local func = require "func"
 local coor = require "coor"
 local trackEdge = require "trackedge"
-local dump = require "datadumper"
 
 local platformSegments = {2, 4, 8, 12, 16, 20, 24}
 local heightList = {-10, -15, -20}
@@ -15,7 +14,6 @@ local nbTracksLevelList = {{2, 1}, {4, 1}, {2, 2}, {4, 2}, {2, 3}, {4, 3}}
 local nbTracksPlatform = {2, 4, 6, 8}
 
 local newModel = function(m, ...)
-    dump.dump({...})
     return {
         id = m,
         transf = coor.mul(...)

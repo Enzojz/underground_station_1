@@ -51,8 +51,7 @@ local function buildCoors(nSeg)
     local function buildGroup(nbTracks, level, baseX, xOffsets, uOffsets, xuIndex, xParity)
         local project = function(x) return func.map(x, function(offset) return {mpt = coor.mul(coor.transX(offset), level.mdr, level.mz), mvec = level.mr} end) end
         if (nbTracks == 0) then
-            return
-                xOffsets, uOffsets, xuIndex, xParity
+            return xOffsets, uOffsets, xuIndex, xParity
         elseif (nbTracks == 1) then
             return buildGroup(nbTracks - 1, level, baseX + groupWidth - 0.5 * trackWidth,
                 func.concat(xOffsets, project({baseX + platformWidth})),
@@ -71,7 +70,6 @@ local function buildCoors(nSeg)
     end
     
     local function build(trackGroups, baseX, ...)
-        
         if (#trackGroups == 1) then
             local nbTracks, level = table.unpack(trackGroups[1])
             return buildGroup(nbTracks, level, baseX, ...)
@@ -79,7 +77,6 @@ local function buildCoors(nSeg)
             return build(func.range(trackGroups, 2, #trackGroups), baseX, build({trackGroups[1]}, baseX, ...))
         end
     end
-    
     return build
 end
 
@@ -299,7 +296,6 @@ local function updateFn(config)
                 math.rad(angleList[params.angle3 + 1]) * ((params.mirrored == 2 or params.mirrored == 3) and -1 or 1)
             }
             
-            
             local center = centers(nSeg)[params.topoMode + 1]
             if (params.topoMode == 1) then
                 local center3a = coor.apply(center[3], coor.rotZCentered(rad[2], center[2]))
@@ -316,8 +312,8 @@ local function updateFn(config)
                     },
                     {
                         mz = coor.transZ(-20),
-                        mr = coor.rotZ(rad[3]),
-                        mdr = coor.mul(coor.trans(coor.sub(center3a, center[3])), coor.rotZCentered(rad[3], center3a))
+                        mr = coor.rotZ(rad[3] + rad[2]),
+                        mdr = coor.mul(coor.trans(coor.sub(center3a, center[3])), coor.rotZCentered(rad[3] + rad[2], center3a))
                     }
                 }
             elseif (params.topoMode == 2) then

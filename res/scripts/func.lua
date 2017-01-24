@@ -144,4 +144,8 @@ function func.range(ls, from, to)
     return result
 end
 
+function func.seqValue(n, value)
+    return func.seqMap({1, n}, function(_) return value end)
+end
+
 return func

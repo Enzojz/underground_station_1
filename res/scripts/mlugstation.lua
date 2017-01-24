@@ -3,6 +3,7 @@ local paramsutil = require "paramsutil"
 local func = require "func"
 local coor = require "coor"
 local trackEdge = require "trackedge"
+local dump = require "datadumper"
 
 local platformSegments = {2, 4, 8, 12, 16, 20, 24}
 local heightList = {-10, -15, -20}
@@ -14,26 +15,78 @@ local nbTracksLevelList = {{2, 1}, {4, 1}, {2, 2}, {4, 2}, {2, 3}, {4, 3}}
 local nbTracksPlatform = {2, 4, 6, 8}
 
 local newModel = function(m, ...)
+    dump.dump({...})
     return {
         id = m,
         transf = coor.mul(...)
     }
 end
 
-local function generateTrackGroups(xOffsets, length)
+local makeTerminals = function(terminals, side, track)
+    return {
+        terminals = func.map(terminals, function(t) return {t, side} end),
+        vehicleNodeOverride = track * 4 - 2
+    }
+end
+
+local function generateTrackGroups(xOffsets, xParity, length)
     local halfLength = length * 0.5
-    return laneutil.makeLanes(
-        func.mapFlatten(xOffsets,
-            function(xOffset)
-                return {
-                    {{xOffset, -halfLength, 0}, {xOffset, 0, 0}, {0, 1, 0}, {0, 1, 0}},
-                    {{xOffset, 0, 0}, {xOffset, halfLength, 0}, {0, 1, 0}, {0, 1, 0}}
-                }
+    return func.flatten(
+        func.map2(xOffsets, xParity,
+            function(xOffset, m)
+                return coor.applyEdges(coor.mul(m, xOffset.mpt), coor.mul(m, xOffset.mvec))(
+                    {
+                        {{0, -halfLength, 0}, {0, halfLength, 0}},
+                        {{0, 0, 0}, {0, halfLength, 0}},
+                        {{0, 0, 0}, {0, halfLength, 0}},
+                        {{0, halfLength, 0}, {0, halfLength, 0}},
+                    })
             end
 ))
 end
 
+local function buildCoors(nSeg)
+    local groupWidth = trackWidth + platformWidth
+    
+    local function buildUIndex(uOffset, ...) return {func.seq(uOffset * nSeg, (uOffset + 1) * nSeg - 1), {...}} end
+    
+    local function buildGroup(group, baseX, xOffsets, uOffsets, xuIndex, xParity)
+        local nbTracks, level = table.unpack(group)
+        local project = function(x) return func.map(x, function(offset) return {mpt = coor.mul(coor.transX(offset), level.mdr, level.mz), mvec = level.mr} end) end
+        if (nbTracks == 0) then
+            return
+                xOffsets, uOffsets, xuIndex, xParity
+        elseif (nbTracks == 1) then
+            return buildGroup({nbTracks - 1, level}, baseX + groupWidth - 0.5 * trackWidth,
+                func.concat(xOffsets, project({baseX + platformWidth})),
+                func.concat(uOffsets, project({baseX + platformWidth - trackWidth})),
+                func.concat(xuIndex, {buildUIndex(#uOffsets, {1, #xOffsets + 1})}),
+                func.concat(xParity, {coor.flipY()})
+        )
+        else
+            return buildGroup({nbTracks - 2, level}, baseX + groupWidth + trackWidth,
+                func.concat(xOffsets, project({baseX, baseX + groupWidth})),
+                func.concat(uOffsets, project({baseX + 0.5 * groupWidth})),
+                func.concat(xuIndex, {buildUIndex(#uOffsets, {0, #xOffsets + 1}, {1, #xOffsets + 2})}),
+                func.concat(xParity, {coor.I(), coor.flipY()})
+        )
+        end
+    end
+    
+    local function build(trackGroups, baseX, ...)
+        
+        if (#trackGroups == 1) then
+            return buildGroup(trackGroups[1], baseX, ...)
+        else
+            return build(func.range(trackGroups, 2, #trackGroups), baseX, build({trackGroups[1]}, baseX, ...))
+        end
+    end
+    
+    return build
+end
+
 local snapRule = function(e) return func.filter(func.seq(0, #e - 1), function(e) return e % 4 == 0 or (e - 3) % 4 == 0 end) end
+local noSnap = function(e) return {} end
 
 local function setHeight(result, height)
     local mpt = coor.transZ(height)
@@ -123,9 +176,9 @@ local function addEntry(result, tram, config)
     local street =
         {
             type = "STREET",
-            params = 
-            {  
-                type = config.streetType, 
+            params =
+            {
+                type = config.streetType,
                 tramTrackType = tram
             },
             edges = config.steetEdegs,
@@ -312,60 +365,32 @@ local function updateFn(config)
             
             if (params.topoMode == 2 and rad[2] == rad[3] and #entryLocations == 3) then table.remove(entryLocations, 2) end
             
-            
             local totalWidth = nbTracks * (trackWidth + 0.5 * platformWidth)
-            local totalOffsetX = 0.5 * (-totalWidth + trackWidth)
-            local groupWidth = trackWidth + platformWidth
             local platforms = platformPatterns(nSeg)
+            local xOffsets, uOffsets, xuIndex, xParity =
+                buildCoors(nSeg)(func.map(levels, function(l) return {nbTracks, l} end), 0.5 * (-totalWidth + trackWidth), {}, {}, {}, {})
             
-            local baseXs = func.seqMap({1, nbTracks * 0.5}, function(i) return (i - 1) * (trackWidth + groupWidth) + totalOffsetX end)
-            local xOffsets = func.mapFlatten(baseXs, function(baseX) return {baseX, baseX + groupWidth} end)
-            local uOffsets = func.map(baseXs, function(baseX) return baseX + 0.5 * groupWidth end)
-            local xuIndex = func.seqMap({1, #baseXs}, function(i) return {i, {{0, i * 2 - 1}, {1, i * 2}}} end)
-            
-            local function transform(l) return coor.applyEdges(coor.mul(l.mz, l.mdr), l.mr) end
-            local trueTracks = func.mapFlatten(levels, function(l) return transform(l)(generateTrackGroups(xOffsets, length)) end)
-            local mockTracks = func.mapFlatten(levels, function(l) return transform(l)(generateTrackGroups(uOffsets, length)) end)
+            local trueTracks = generateTrackGroups(xOffsets, xParity, length)
+            local mockTracks = generateTrackGroups(uOffsets, func.seqValue(#uOffsets, coor.I()), length)
             
             result.edgeLists = {
                 trackEdge.tunnel(catenary, trackType, snapRule)(trueTracks),
-                trackEdge.tunnel(false, "zzz_mock.lua", function(e) return {} end)(mockTracks)
+                trackEdge.tunnel(false, "zzz_mock.lua", noSnap)(mockTracks)
             }
             
             result.models =
-                func.mapFlatten(levels, function(level)
-                    return func.mapFlatten(uOffsets,
-                        function(xOffset)
-                            return func.seqMap({1, #platforms}, function(i)
-                                return newModel(platforms[i],
-                                    coor.transY(i * 20 - 0.5 * (segmentLength + length)), coor.transX(xOffset), level.mz, level.mdr) end
-                        )
-                        end)
-                end)
-            
-            result.terminalGroups =
-                func.mapFlatten(func.seq(0, #levels - 1), function(l)
-                    local firstSeg = function(x) return (x + l * #uOffsets) * #platforms end
-                    local lastSeg = function(x) return firstSeg(x) + #platforms - 1 end
-                    local terminalsList = func.seqMap({0, #uOffsets - 1}, function(x) return func.seq(firstSeg(x), lastSeg(x)) end)
-                    
-                    local makeTerminals = function(terminals, side, track)
-                        return {
-                            terminals = func.map(terminals, function(t) return {t, side} end),
-                            vehicleNodeOverride = (l * #xOffsets + track) * 4 - 2
-                        }
-                    end
-                    
-                    return func.mapFlatten(xuIndex, function(v)
-                        local u, xIndices = table.unpack(v)
-                        return func.map(xIndices, function(v) return makeTerminals(terminalsList[u], table.unpack(v)) end
+                func.mapFlatten(uOffsets,
+                    function(uOffset)
+                        return func.seqMap({1, #platforms}, function(i) return newModel(platforms[i], coor.transY(i * 20 - 0.5 * (segmentLength + length)), uOffset.mpt) end
                     )
-                    end
-                )
-                end)
+                    end)
             
-            -- End of generation
-            -- Slope, Height, Mirror treatment
+            result.terminalGroups = func.mapFlatten(xuIndex, function(v)
+                local u, xIndices = table.unpack(v)
+                return func.map(xIndices, function(x) return makeTerminals(u, table.unpack(x)) end
+            )
+            end)
+            
             setHeight(result, height)
             
             result.groundFaces = {}

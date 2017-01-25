@@ -274,9 +274,14 @@ local function makeUpdateFn(config)
             if (params.topoMode == 2 and rad[2] == rad[3] and #entryLocations == 3) then table.remove(entryLocations, 2) end
             
             local totalWidth = nbTracks * (station.trackWidth + 0.5 * station.platformWidth)
-
-            func.forEach(levels, function(l) l.nbTracks = nbTracks l.baseX = 0.5 * (-totalWidth + station.trackWidth) end)
-
+            
+            func.forEach(levels, function(l)
+                l.nbTracks = nbTracks
+                l.baseX = 0.5 * (-totalWidth + station.trackWidth)
+                l.ignoreFst = nbTracks % 4 == 0
+                l.ignoreLst = nbTracks % 4 == 0
+            end)
+            
             local platforms = platformPatterns(nSeg)
             local xOffsets, uOffsets, xuIndex = station.buildCoors(nSeg)(levels, {}, {}, {}, {})
             

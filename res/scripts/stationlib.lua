@@ -58,22 +58,22 @@ stationlib.buildCoors = function(nSeg)
         
         if (nbTracks == 0) then
             return xOffsets, uOffsets, xuIndex
-        elseif (nbTracks == 1 and not level.ignorLst) then
-            return buildGroup(level, baseX + groupWidth - 0.5 * stationlib.trackWidth,
-                make({
-                    xOffset = {baseX},
-                    xParity = {coor.I()},
-                    uOffset = {baseX + 0.5 * groupWidth},
-                    xuIndex = buildUIndex(#uOffsets, {0, #xOffsets + 1})
-                })
-        )
-        elseif ((nbTracks == 1 and level.ignorLst) or (nbTracks == level.nbTracks and not level.ignorFst)) then
+        elseif ((nbTracks == 1 and level.ignoreLst) or (nbTracks == level.nbTracks and not level.ignoreFst)) then
             return buildGroup(level, baseX + groupWidth,
                 make({
                     xOffset = {baseX + 0.5 * groupWidth},
                     xParity = {coor.flipY()},
                     uOffset = {baseX},
                     xuIndex = buildUIndex(#uOffsets, {1, #xOffsets + 1})
+                })
+        )
+        elseif (nbTracks == 1 and not level.ignoreLst) then
+            return buildGroup(level, baseX + groupWidth - 0.5 * stationlib.trackWidth,
+                make({
+                    xOffset = {baseX},
+                    xParity = {coor.I()},
+                    uOffset = {baseX + 0.5 * groupWidth},
+                    xuIndex = buildUIndex(#uOffsets, {0, #xOffsets + 1})
                 })
         )
         else

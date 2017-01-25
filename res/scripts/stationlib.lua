@@ -33,12 +33,12 @@ stationlib.generateTrackGroups = function(xOffsets, length)
 ))
 end
 
-stationlib.buildCoors = function(nSeg, ignorFst)
+stationlib.buildCoors = function(nSeg)
     local groupWidth = stationlib.trackWidth + stationlib.platformWidth
     
     local function buildUIndex(uOffset, ...) return {func.seq(uOffset * nSeg, (uOffset + 1) * nSeg - 1), {...}} end
     
-    local function buildGroup(nbTracks, level, baseX, xOffsets, uOffsets, xuIndex)
+    local function buildGroup(level, baseX, nbTracks, xOffsets, uOffsets, xuIndex)
         local project = function(x, p) return func.map2(x, p, function(offset, parity) return
             {
                 mpt = coor.mul(coor.transX(offset), level.mdr, level.mz),
@@ -50,6 +50,7 @@ stationlib.buildCoors = function(nSeg, ignorFst)
         
         local make = function(params)
             return
+                nbTracks - #params.xOffset,
                 func.concat(xOffsets, project(params.xOffset, params.xParity)),
                 func.concat(uOffsets, project(params.uOffset, {coor.I()})),
                 func.concat(xuIndex, {params.xuIndex})
@@ -57,17 +58,8 @@ stationlib.buildCoors = function(nSeg, ignorFst)
         
         if (nbTracks == 0) then
             return xOffsets, uOffsets, xuIndex
-        elseif (nbTracks == 1 and ignorFst) then
-            return buildGroup(nbTracks - 1, level, baseX + groupWidth - 0.5 * stationlib.trackWidth,
-                make({
-                    xOffset = {baseX + stationlib.platformWidth},
-                    xParity = {coor.flipY()},
-                    uOffset = {baseX + stationlib.platformWidth - stationlib.trackWidth},
-                    xuIndex = buildUIndex(#uOffsets, {1, #xOffsets + 1})
-                })
-        )
-        elseif (nbTracks == 1 and not ignorFst) then
-            return buildGroupWithFst(nbTracks - 1, level, baseX + groupWidth - 0.5 * stationlib.trackWidth,
+        elseif (nbTracks == 1 and not level.ignorLst) then
+            return buildGroup(level, baseX + groupWidth - 0.5 * stationlib.trackWidth,
                 make({
                     xOffset = {baseX},
                     xParity = {coor.I()},
@@ -75,8 +67,8 @@ stationlib.buildCoors = function(nSeg, ignorFst)
                     xuIndex = buildUIndex(#uOffsets, {0, #xOffsets + 1})
                 })
         )
-        elseif (nbTracks == level.nbTracks and not ignorFst) then
-            return buildGroupWithFst(nbTracks - 1, level, baseX + groupWidth,
+        elseif ((nbTracks == 1 and level.ignorLst) or (nbTracks == level.nbTracks and not level.ignorFst)) then
+            return buildGroup(level, baseX + groupWidth,
                 make({
                     xOffset = {baseX + 0.5 * groupWidth},
                     xParity = {coor.flipY()},
@@ -85,7 +77,7 @@ stationlib.buildCoors = function(nSeg, ignorFst)
                 })
         )
         else
-            return buildGroup(nbTracks - 2, level, baseX + groupWidth + stationlib.trackWidth,
+            return buildGroup(level, baseX + groupWidth + stationlib.trackWidth,
                 make({
                     xOffset = {baseX, baseX + groupWidth},
                     xParity = {coor.I(), coor.flipY()},
@@ -99,7 +91,7 @@ stationlib.buildCoors = function(nSeg, ignorFst)
     local function build(trackGroups, ...)
         if (#trackGroups == 1) then
             local group = table.unpack(trackGroups)
-            return buildGroup(group.nbTracks, group, group.baseX, ...)
+            return buildGroup(group, group.baseX, group.nbTracks, ...)
         else
             return build(func.range(trackGroups, 2, #trackGroups), build({trackGroups[1]}, ...))
         end

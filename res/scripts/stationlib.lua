@@ -33,7 +33,7 @@ stationlib.generateTrackGroups = function(xOffsets, length)
 ))
 end
 
-stationlib.buildCoors = function(nSeg)
+stationlib.buildCoors = function(nSeg, ignorFst)
     local groupWidth = stationlib.trackWidth + stationlib.platformWidth
     
     local function buildUIndex(uOffset, ...) return {func.seq(uOffset * nSeg, (uOffset + 1) * nSeg - 1), {...}} end
@@ -47,19 +47,51 @@ stationlib.buildCoors = function(nSeg)
                 id = level.id
             }
         end) end
+        
+        local make = function(params)
+            return
+                func.concat(xOffsets, project(params.xOffset, params.xParity)),
+                func.concat(uOffsets, project(params.uOffset, {coor.I()})),
+                func.concat(xuIndex, {params.xuIndex})
+        end
+        
         if (nbTracks == 0) then
             return xOffsets, uOffsets, xuIndex
-        elseif (nbTracks == 1) then
+        elseif (nbTracks == 1 and ignorFst) then
             return buildGroup(nbTracks - 1, level, baseX + groupWidth - 0.5 * stationlib.trackWidth,
-                func.concat(xOffsets, project({baseX + stationlib.platformWidth}, {coor.flipY()})),
-                func.concat(uOffsets, project({baseX + stationlib.platformWidth - stationlib.trackWidth}, {coor.I()})),
-                func.concat(xuIndex, {buildUIndex(#uOffsets, {1, #xOffsets + 1})})
+                make({
+                    xOffset = {baseX + stationlib.platformWidth},
+                    xParity = {coor.flipY()},
+                    uOffset = {baseX + stationlib.platformWidth - stationlib.trackWidth},
+                    xuIndex = buildUIndex(#uOffsets, {1, #xOffsets + 1})
+                })
+        )
+        elseif (nbTracks == 1 and not ignorFst) then
+            return buildGroupWithFst(nbTracks - 1, level, baseX + groupWidth - 0.5 * stationlib.trackWidth,
+                make({
+                    xOffset = {baseX},
+                    xParity = {coor.I()},
+                    uOffset = {baseX + 0.5 * groupWidth},
+                    xuIndex = buildUIndex(#uOffsets, {0, #xOffsets + 1})
+                })
+        )
+        elseif (nbTracks == level.nbTracks and not ignorFst) then
+            return buildGroupWithFst(nbTracks - 1, level, baseX + groupWidth,
+                make({
+                    xOffset = {baseX + 0.5 * groupWidth},
+                    xParity = {coor.flipY()},
+                    uOffset = {baseX},
+                    xuIndex = buildUIndex(#uOffsets, {1, #xOffsets + 1})
+                })
         )
         else
             return buildGroup(nbTracks - 2, level, baseX + groupWidth + stationlib.trackWidth,
-                func.concat(xOffsets, project({baseX, baseX + groupWidth}, {coor.I(), coor.flipY()})),
-                func.concat(uOffsets, project({baseX + 0.5 * groupWidth}, {coor.I()})),
-                func.concat(xuIndex, {buildUIndex(#uOffsets, {0, #xOffsets + 1}, {1, #xOffsets + 2})})
+                make({
+                    xOffset = {baseX, baseX + groupWidth},
+                    xParity = {coor.I(), coor.flipY()},
+                    uOffset = {baseX + 0.5 * groupWidth},
+                    xuIndex = buildUIndex(#uOffsets, {0, #xOffsets + 1}, {1, #xOffsets + 2})
+                })
         )
         end
     end

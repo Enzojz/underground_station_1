@@ -44,7 +44,8 @@ stationlib.buildCoors = function(nSeg)
                 mpt = coor.mul(coor.transX(offset), level.mdr, level.mz),
                 mvec = level.mr,
                 parity = parity,
-                id = level.id
+                id = level.id,
+                x = offset
             }
         end) end
         
@@ -101,12 +102,12 @@ end
 
 stationlib.noSnap = function(e) return {} end
 
-stationlib.makePlatforms = function(uOffsets, platforms)
+stationlib.makePlatforms = function(uOffsets, platforms, m)
     local length = #platforms * stationlib.segmentLength
     return func.mapFlatten(uOffsets,
         function(uOffset)
             return func.map2(func.seq(1, #platforms), platforms, function(i, p)
-                return newModel(p, coor.transY(i * stationlib.segmentLength - 0.5 * (stationlib.segmentLength + length)), uOffset.mpt) end
+                return newModel(p, coor.transY(i * stationlib.segmentLength - 0.5 * (stationlib.segmentLength + length)), uOffset.mpt, m) end
         )
         end)
 end

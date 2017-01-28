@@ -16,11 +16,12 @@ To be implemented:
 === ATTENTION ===
 * For the reason that configuration pannel is limited by the game, the "catenary and track type" options are merged into one in this mod 
 
-=== ATTENTION ===
-[b][u]* In the 1.2 release, the [i]reproducible[/i] crash problem with 2-layer and 3-layer station is likely resolved, please use "Upgrade" function to get the station updated on saved games.[/u][/b]
-
 ---------------
 Changelog
+1.4
+* Central tracks for 2 tracks configuration
+* Stabilty may be improved
+
 1.3
 * Fixed issue that no catchment area on 40m platforms brought in 1.2.(need station upgrade on saved games)
 * Replaced 500m platform which never worked with that of 480m.
@@ -62,13 +63,13 @@ Caractéristiques:
 
 === ATTENTION ===
 * Faute de l'limitation de panneau de configuration de jeux, l'options "Typee de voie" et "caténaire" sont fusioné dans une.
-* Veuillez faire attention sur cet aspect si vous avez déjà utilisé la verison 0.9 du mod. 
-
-=== ATTENTION ===
-[b][u]* Dans la version 1.2, il semble que le [i]reproductible[/i] plantage avec gare de 2 niveaux et 3 niveaux soit corrigé, utilisez "Agrandir" pour faire la mise à jour si vous avez sauvegarde de jeux[/u][/b]
 
 ---------------
 Changelog
+1.4
+* Voie centrale pour configuration de 2 voies.
+* Stabilité est peut-être amélioré. 
+
 1.3
 * Correction de problem relié aux platforme de 40m et de 500m dans version 1.2 (utilisez "Agrandir" pour faire la mise à jour si vous avez sauvegarde de jeux)
 * Platforme de 500m qui ne marche jamais est remplacé par celui de 480m
@@ -103,11 +104,12 @@ descZH = [[一种可以配置多层交错的地下车站，可以用来建设交
 === 注意 ===
 * 因为参数面板尺寸的限制，“轨道类型”和“接触网”两项被合并在了一起.
 
-=== 注意 ===
-[b][u]* 在最新版本中，因为使用地下2层或者3层车站到导致的游戏[i]重复[/i]退出问题似乎已经被解决，对于已经保存的游戏，需要使用车站升级功能更新其配置修正错误。[/u][/b]
-
 ---------------
 Changelog
+1.4
+* 两股道配置中将股道移至了中央
+* 可能提高了稳定性
+
 1.3
 * 修正了1.2版本中带来的40米站台无效的问题，对于已经保存的游戏，需要使用车站升级功能更新其配置修正错误。
 * 用480米站台替换了500米站台

@@ -16,10 +16,10 @@ function data()
                     {
                         id = "station/multi_level_underground/underground_end_wall.msh",
                         transf = {
-                            0, 0.5, 0, 0,
+                            0, 0.55, 0, 0,
                             1, 0, 0, 0,
-                            0, 0, 0.7, 0,
-                            -0.5, 0, 0, 1
+                            0, 0, 0.8, 0,
+                            -0.35, 0, 0, 1
                         },
                         type = "MESH",
                     },

@@ -69,6 +69,7 @@ Caractéristiques:
 Changelog
 1.4
 * Voie centrale pour configuration de 2 voies.
+* Correction d'algorithme pour la configuration triangle
 * Stabilité est peut-être amélioré. 
 
 1.3
@@ -109,6 +110,7 @@ descZH = [[一种可以配置多层交错的地下车站，可以用来建设交
 Changelog
 1.4
 * 两股道配置中将股道移至了中央
+* 修正了三角形布局的算法
 * 可能提高了稳定性
 
 1.3

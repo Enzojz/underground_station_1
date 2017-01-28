@@ -20,6 +20,7 @@ To be implemented:
 Changelog
 1.4
 * Central tracks for 2 tracks configuration
+* Corrected algorithm for triangle layout
 * Stabilty may be improved
 
 1.3

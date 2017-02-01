@@ -50,8 +50,8 @@ local station = require "mlugstation"
 
 local config = {
     availability = {
-        yearTo = 1840,
-        yearFrom = 1840
+        yearTo = 2020,
+        yearFrom = 1910
     },
     order = 3015,
     soundConfig = {

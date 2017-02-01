@@ -15,8 +15,8 @@ To be implemented:
 ---------------
 Changelog
 1.5
-* Seperate station of different levels into different menu items
-* Central Track option for simplex station
+* Seperation of stations of different levels into different menu items
+* Central tracks option for simplex station
 * More tracks (up to 12 tracks for each level)
 
 1.4

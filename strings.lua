@@ -14,6 +14,9 @@ To be implemented:
 
 ---------------
 Changelog
+1.6
+* Fixed bug of crashes on previous saved games with version 1.5. The simplex station built with version 1.5 is deprecated but still useable, please switch to the current item asap.
+
 1.5
 * Seperation of stations of different levels into different menu items
 * Central tracks option for simplex station
@@ -64,6 +67,9 @@ Caractéristiques:
 
 ---------------
 Changelog
+1.6
+* Correction de plantage avec les jeux sauvgardés précédents. Attention: la gare simplex crée avec la version 1.5 est obsolète mais encore utilisable, veuillez change le type de gare plus tôt tant que possible.
+
 1.5
 * Seperation des gares de niveaux différents dans le menu
 * Option pour voie centralisé pour la gare simplex
@@ -107,6 +113,9 @@ descZH = [[一种可以配置多层交错的地下车站，可以用来建设交
 
 ---------------
 Changelog
+1.6
+* 修正了1.5版本中导致之前保存的游戏崩溃问题，但是使用1.5版本创建的单层车站已经废止，请尽快更换为新的车站。
+
 1.5
 * 将不同层数的车站分入了菜单中不同的选项中
 * 单层车站增加了中央股道的选项

@@ -1,7 +1,7 @@
 local descEN = [[An underground station with one/multi-level possibilty, it can be used to configure a Spanish solution or Cross Station.
 Features:
 * Visible platforms
-* 2 or 4 tracks for each level
+* From 1 to 12 tracks for each level
 * From 40m to 480m platform lengths
 * 1, 2, 3 levels and assured interchange channels between -1 and -2 and between -2 and -3 layers
 * Cross station options
@@ -11,13 +11,14 @@ Features:
 
 To be implemented:
 * Real stairs
-* Ground level stations with underground level
-
-=== ATTENTION ===
-* For the reason that configuration pannel is limited by the game, the "catenary and track type" options are merged into one in this mod 
 
 ---------------
 Changelog
+1.5
+* Seperate station of different levels into different menu items
+* Central Track option for simplex station
+* More tracks (up to 12 tracks for each level)
+
 1.4
 * Central tracks for 2 tracks configuration
 * Corrected algorithm for triangle layout
@@ -50,7 +51,7 @@ Pre-release beta
 local descFR = [[Une gare souterrain avec possibility d'avoir plusieurs niveaux et platformes croisée.
 Caractéristiques:
 * Platformes visibles
-* 2 ou 4 voies pour chaque niveaux
+* De 1 jusqu'à 12 voies pour chaque niveaux
 * Longueur de platformes de 40m jusqu'à 480m
 * 1, 2 ou 3 niveaux avec correspondence de platforme assuré entre niveaux -1,-2 et -2,-3
 * Option gare en croix
@@ -60,13 +61,14 @@ Caractéristiques:
 
 À implémenter
 * Escalier vrai sur plateformes
-* Gare de surface avec niveau sous-terrain.
-
-=== ATTENTION ===
-* Faute de l'limitation de panneau de configuration de jeux, l'options "Typee de voie" et "caténaire" sont fusioné dans une.
 
 ---------------
 Changelog
+1.5
+* Seperation des gares de niveaux différents dans le menu
+* Option pour voie centralisé pour la gare simplex
+* Plus de voie (jusqu'à 12 voies pour chaques niveau)
+
 1.4
 * Voie centrale pour configuration de 2 voies.
 * Correction d'algorithme pour la configuration triangle
@@ -94,7 +96,7 @@ Pre-release beta
 descZH = [[一种可以配置多层交错的地下车站，可以用来建设交叉车站和西班牙站台。
 特点：
 * 可以看到站台
-* 每层两或四条轨道
+* 每层1至或12条轨道
 * 站台长度从40米到480米
 * 多至三层
 * 交叉车站选项
@@ -103,11 +105,13 @@ descZH = [[一种可以配置多层交错的地下车站，可以用来建设交
 * 多种站台布局可选
 * 可扩展
 
-=== 注意 ===
-* 因为参数面板尺寸的限制，“轨道类型”和“接触网”两项被合并在了一起.
-
 ---------------
 Changelog
+1.5
+* 将不同层数的车站分入了菜单中不同的选项中
+* 单层车站增加了中央股道的选项
+* 更多的股道(每层最多至12条)
+
 1.4
 * 两股道配置中将股道移至了中央
 * 修正了三角形布局的算法

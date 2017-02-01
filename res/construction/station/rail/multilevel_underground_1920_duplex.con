@@ -50,17 +50,17 @@ local station = require "mlugstation"
 
 local config = {
     availability = {
-        yearTo = 1950,
-        yearFrom = 1867
+        yearTo = 2020,
+        yearFrom = 1910
     },
-    order = 1015,
+    order = 3016,
     soundConfig = {
         soundSet = {name = "station_passenger_old"}
     },
-    platformRepeat = "station/train/passenger/1850/platform_double_repeat.mdl",
-    platformDwlink = "station/train/passenger/multi_level_underground/1850/underground_platform_downstairs.mdl",
-    stationHouse = "station/train/passenger/multi_level_underground/1850/underground_house.mdl",
-    staires = "station/train/passenger/multi_level_underground/1850/underground_stairs.mdl"
+    platformRepeat = "station/train/passenger/1920/platform_double_repeat.mdl",
+    platformDwlink = "station/train/passenger/multi_level_underground/1920/underground_platform_downstairs.mdl",
+    stationHouse = "station/train/passenger/multi_level_underground/1920/underground_house.mdl",
+    staires = "station/train/passenger/multi_level_underground/1920/underground_stairs.mdl"
 }
 
-data = station.makeUpdateFnSimplex(config)
+data = station.makeUpdateFnDuplex(config)

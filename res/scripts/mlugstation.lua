@@ -244,19 +244,19 @@ end
 local function centers(nSeg)
     return {
         {
-            {x = 0, y = 0, z = 0},
-            {x = 0, y = station.segmentLength * (nSeg * 0.5 - 2), z = 0},
-            {x = 0, y = -station.segmentLength * (nSeg * 0.5 - 2), z = 0}
+            coor.xyz(0, 0, 0),
+            coor.xyz(0, station.segmentLength * (nSeg * 0.5 - 2), 0),
+            coor.xyz(0, -station.segmentLength * (nSeg * 0.5 - 2), 0)
         },
         {
-            {x = 0, y = 0, z = 0},
-            {x = 0, y = station.segmentLength * (nSeg * 0.5 - 2), z = 0},
-            {x = 0, y = -station.segmentLength * (nSeg * 0.5 - 2), z = 0}
+            coor.xyz(0,0, 0),
+            coor.xyz(0,station.segmentLength * (nSeg * 0.5 - 2), 0),
+            coor.xyz(0,-station.segmentLength * (nSeg * 0.5 - 2), 0)
         },
         {
-            {x = 0, y = 0, z = 0},
-            {x = 0, y = station.segmentLength * (nSeg * 0.5 - 2), z = 0},
-            {x = 0, y = station.segmentLength * (nSeg * 0.5 - 2), z = 0}
+            coor.xyz(0, 0, 0),
+            coor.xyz(0, station.segmentLength * (nSeg * 0.5 - 2), 0),
+            coor.xyz(0, station.segmentLength * (nSeg * 0.5 - 2), 0)
         }
     }
 end
@@ -360,14 +360,14 @@ local function makeUpdateFn(config, paramsChecker)
                     else
                         local precedentLevels = makeLevel(lev - 1)
                         local lastLevel = precedentLevels[#precedentLevels]
-                        local ncenter = coor.apply(center[lev], lastLevel.mdr, coor.rotZCentered(rad[lev], center[lev - 1]))
+                        local ncenter = center[lev] .. lastLevel.mdr
                         return func.concat(
                             precedentLevels,
                             {
                                 newLevel({
-                                    mz = coor.mul(lastLevel.mz, coor.transZ(-10)),
-                                    mr = coor.mul(lastLevel.mr, coor.rotZ(rad[lev])),
-                                    mdr = coor.mul(coor.trans(coor.sub(ncenter, center[lev])), coor.rotZCentered(rad[lev] + rad[lev - 1], ncenter)),
+                                    mz = lastLevel.mz * coor.transZ(-10),
+                                    mr = lastLevel.mr * coor.rotZ(rad[lev]),
+                                    mdr = coor.trans(ncenter - center[lev]) * coor.centered(coor.rotZ, rad[lev] + rad[lev - 1], ncenter),
                                     id = lev
                                 })
                             }
@@ -383,14 +383,14 @@ local function makeUpdateFn(config, paramsChecker)
                     else
                         local precedentLevels = makeLevel(lev - 1)
                         local lastLevel = precedentLevels[#precedentLevels]
-                        local ncenter = coor.applyM(center[lev], coor.transX(dx * 0.5), lastLevel.mdr)
+                        local ncenter = center[lev] .. coor.transX(dx * 0.5) * lastLevel.mdr
                         return func.concat(
                             precedentLevels,
                             {
                                 newLevel({
-                                    mz = coor.mul(lastLevel.mz, coor.transZ(-10)),
-                                    mr = coor.mul(lastLevel.mr, coor.rotZ(rad[lev])),
-                                    mdr = coor.mul(coor.transX(dx), lastLevel.mdr, coor.rotZCentered(rad[lev], ncenter)),
+                                    mz = lastLevel.mz * coor.transZ(-10),
+                                    mr = lastLevel.mr * coor.rotZ(rad[lev]),
+                                    mdr = coor.transX(dx) * lastLevel.mdr * coor.centered(coor.rotZ, rad[lev], ncenter),
                                     id = lev
                                 })
                             }
@@ -408,7 +408,7 @@ local function makeUpdateFn(config, paramsChecker)
                     }) end)
             end
             
-            local entryLocations = func.map2(center, levels, function(o, l) return {coor.mul(coor.trans(coor.apply(o, coor.flipY())), l.mdr), l.mr} end)
+            local entryLocations = func.map2(center, levels, function(o, l) return {coor.trans(o..coor.flipY()) * l.mdr, l.mr} end)
             local entryConfig = entryList[params.entryMode + 1]
             if (nSeg < 5) then while #entryConfig > 1 do table.remove(entryConfig) end end
             

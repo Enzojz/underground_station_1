@@ -1,4 +1,4 @@
-local func = require "func"
+local func = require "underground/func"
 trackEdge = {}
 
 

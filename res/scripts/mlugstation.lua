@@ -1,9 +1,12 @@
+local function load(module) return require("underground/" .. module) end
+
 local laneutil = require "laneutil"
 local paramsutil = require "paramsutil"
-local func = require "func"
-local coor = require "coor"
-local trackEdge = require "trackedge"
-local station = require "stationlib"
+local func = load "func"
+local pipe = load "pipe"
+local coor = load "coor"
+local trackEdge = load "trackedge"
+local station = load "stationlib"
 
 local platformSegments = {2, 4, 8, 12, 16, 20, 24}
 local heightList = {-10, -15, -20}
@@ -75,12 +78,8 @@ local function paramsDuplex()
             values = func.map(platformSegments, function(l) return _(tostring(l * station.segmentLength)) end),
             defaultIndex = 2
         },
-        {
-            key = "trackTypeCatenary",
-            name = _("Track Type & Catenary"),
-            values = {_("Normal"), _("Elec."), _("Elec.Hi-Speed"), _("Hi-Speed")},
-            defaultIndex = 1
-        },
+        paramsutil.makeTrackTypeParam(),
+        paramsutil.makeTrackCatenaryParam(),
         {
             key = "platformHeight",
             name = _("Depth") .. "(m)",
@@ -128,12 +127,8 @@ local function paramsTriplex()
             values = func.map(platformSegments, function(l) return _(tostring(l * station.segmentLength)) end),
             defaultIndex = 2
         },
-        {
-            key = "trackTypeCatenary",
-            name = _("Track Type & Catenary"),
-            values = {_("Normal"), _("Elec."), _("Elec.Hi-Speed"), _("Hi-Speed")},
-            defaultIndex = 1
-        },
+        paramsutil.makeTrackTypeParam(),
+        paramsutil.makeTrackCatenaryParam(),
         {
             key = "platformHeight",
             name = _("Depth") .. "(m)",
@@ -190,7 +185,6 @@ end
 local function defaultParamsSimplex(params)
     params.nbLevels = 1
     params.topoMode = 0
-    
     defaultParams(params)
 end
 
@@ -198,8 +192,6 @@ end
 local function defaultParamsDuplex(params)
     params.nbLevels = 2
     params.centralTracks = 0
-    params.trackType = ({0, 0, 1, 1})[params.trackTypeCatenary + 1]
-    params.catenary = ({0, 1, 1, 0})[params.trackTypeCatenary + 1]
     defaultParams(params)
 end
 
@@ -207,8 +199,6 @@ end
 local function defaultParamsTriplex(params)
     params.nbLevels = 3
     params.centralTracks = 0
-    params.trackType = ({0, 0, 1, 1})[params.trackTypeCatenary + 1]
-    params.catenary = ({0, 1, 1, 0})[params.trackTypeCatenary + 1]
     defaultParams(params)
 end
 
@@ -249,9 +239,9 @@ local function centers(nSeg)
             coor.xyz(0, -station.segmentLength * (nSeg * 0.5 - 2), 0)
         },
         {
-            coor.xyz(0,0, 0),
-            coor.xyz(0,station.segmentLength * (nSeg * 0.5 - 2), 0),
-            coor.xyz(0,-station.segmentLength * (nSeg * 0.5 - 2), 0)
+            coor.xyz(0, 0, 0),
+            coor.xyz(0, station.segmentLength * (nSeg * 0.5 - 2), 0),
+            coor.xyz(0, -station.segmentLength * (nSeg * 0.5 - 2), 0)
         },
         {
             coor.xyz(0, 0, 0),
@@ -356,22 +346,19 @@ local function makeUpdateFn(config, paramsChecker)
             if (params.topoMode == 1) then
                 local function makeLevel(lev)
                     if (lev == 1) then
-                        return { newLevel({mz = coor.I(), mr = coor.I(), mdr = coor.I(), id = lev}) }
+                        return {newLevel({mz = coor.I(), mr = coor.I(), mdr = coor.I(), id = lev})}
                     else
                         local precedentLevels = makeLevel(lev - 1)
                         local lastLevel = precedentLevels[#precedentLevels]
                         local ncenter = center[lev] .. lastLevel.mdr
-                        return func.concat(
-                            precedentLevels,
-                            {
-                                newLevel({
-                                    mz = lastLevel.mz * coor.transZ(-10),
-                                    mr = lastLevel.mr * coor.rotZ(rad[lev]),
-                                    mdr = coor.trans(ncenter - center[lev]) * coor.centered(coor.rotZ, rad[lev] + rad[lev - 1], ncenter),
-                                    id = lev
-                                })
-                            }
-                    )
+                        return pipe.new
+                            * precedentLevels
+                            / newLevel({
+                                mz = lastLevel.mz * coor.transZ(-10),
+                                mr = lastLevel.mr * coor.rotZ(rad[lev]),
+                                mdr = coor.trans(ncenter - center[lev]) * coor.centered(coor.rotZ, rad[lev] + rad[lev - 1], ncenter),
+                                id = lev
+                            })
                     end
                 end
                 levels = makeLevel(3)
@@ -379,22 +366,19 @@ local function makeUpdateFn(config, paramsChecker)
                 local dx = preUOffsets[#preUOffsets] - preUOffsets[1] + 15
                 local function makeLevel(lev)
                     if (lev == 1) then
-                        return { newLevel({mz = coor.I(), mr = coor.I(), mdr = coor.I(), id = lev}) }
+                        return {newLevel({mz = coor.I(), mr = coor.I(), mdr = coor.I(), id = lev})}
                     else
                         local precedentLevels = makeLevel(lev - 1)
                         local lastLevel = precedentLevels[#precedentLevels]
                         local ncenter = center[lev] .. coor.transX(dx * 0.5) * lastLevel.mdr
-                        return func.concat(
-                            precedentLevels,
-                            {
-                                newLevel({
-                                    mz = lastLevel.mz * coor.transZ(-10),
-                                    mr = lastLevel.mr * coor.rotZ(rad[lev]),
-                                    mdr = coor.transX(dx) * lastLevel.mdr * coor.centered(coor.rotZ, rad[lev], ncenter),
-                                    id = lev
-                                })
-                            }
-                    )
+                        return pipe.new
+                            * precedentLevels
+                            / newLevel({
+                                mz = lastLevel.mz * coor.transZ(-10),
+                                mr = lastLevel.mr * coor.rotZ(rad[lev]),
+                                mdr = coor.transX(dx) * lastLevel.mdr * coor.centered(coor.rotZ, rad[lev], ncenter),
+                                id = lev
+                            })
                     end
                 end
                 levels = makeLevel(3)
@@ -408,7 +392,7 @@ local function makeUpdateFn(config, paramsChecker)
                     }) end)
             end
             
-            local entryLocations = func.map2(center, levels, function(o, l) return {coor.trans(o..coor.flipY()) * l.mdr, l.mr} end)
+            local entryLocations = func.map2(center, levels, function(o, l) return {coor.trans(o .. coor.flipY()) * l.mdr, l.mr} end)
             local entryConfig = entryList[params.entryMode + 1]
             if (nSeg < 5) then while #entryConfig > 1 do table.remove(entryConfig) end end
             
@@ -472,8 +456,8 @@ local mlugstation = {
             return {
                 type = "RAIL_STATION",
                 description = {
-                    name = _("Underground / Multi-level Passenger Station"),
-                    description = _("An underground / multi-level passenger station")
+                    name = _("Underground Passenger Station"),
+                    description = _("An underground passenger station")
                 },
                 availability = config.availability,
                 order = config.order,
@@ -489,8 +473,8 @@ local mlugstation = {
             return {
                 type = "RAIL_STATION",
                 description = {
-                    name = _("Underground / Multi-level Passenger Station"),
-                    description = _("An underground / multi-level passenger station")
+                    name = _("2-Level Underground Passenger Station"),
+                    description = _("A 2-Level underground passenger station")
                 },
                 availability = config.availability,
                 order = config.order,
@@ -506,8 +490,8 @@ local mlugstation = {
             return {
                 type = "RAIL_STATION",
                 description = {
-                    name = _("Underground / Multi-level Passenger Station"),
-                    description = _("An underground / multi-level passenger station")
+                    name = _("3-Level Underground Passenger Station"),
+                    description = _("A 3-level underground passenger station")
                 },
                 availability = config.availability,
                 order = config.order,
